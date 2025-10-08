@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import StudentForm from './components/StudentForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
@@ -17,7 +17,7 @@ function App() {
   };
 
   return (
-    <Router basename="/input-form">
+    <Router>
       <Routes>
         {/* Student Form Route */}
         <Route path="/" element={<StudentForm />} />
