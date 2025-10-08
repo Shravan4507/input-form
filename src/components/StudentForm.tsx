@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useDatabase } from '../contexts/DatabaseContext';
+import * as mongoAPI from '../services/mongoAPI';
 import type { StudentFormData } from '../types/student';
 import AnimatedBackground from './AnimatedBackground';
 import './StudentForm.css';
 
 const StudentForm = () => {
+  const { activeDB } = useDatabase();
+  
   const [formData, setFormData] = useState<StudentFormData>({
     firstName: '',
     middleName: '',
@@ -96,15 +100,35 @@ const StudentForm = () => {
     setLoading(true);
 
     try {
-      // Add document to Firestore
-      await addDoc(collection(db, 'students'), {
-        ...formData,
-        submittedAt: serverTimestamp()
-      });
+      if (activeDB === 'firestore') {
+        // Add document to Firestore
+        await addDoc(collection(db, 'students'), {
+          ...formData,
+          submittedAt: serverTimestamp()
+        });
+      } else {
+        // Add student to MongoDB
+        const mongoStudent = {
+          fullName: `${formData.firstName} ${formData.middleName} ${formData.surname}`.trim(),
+          rollNo: formData.rollNumber,
+          zprn: formData.zprnNumber,
+          branch: formData.branch,
+          year: formData.year,
+          division: formData.division,
+          email: formData.email,
+          phoneNo: formData.contactNumber,
+          address: `${formData.firstName}'s Address` // You can add a separate address field later
+        };
+        
+        const response = await mongoAPI.addStudent(mongoStudent);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to add student');
+        }
+      }
 
       setFeedbackMessage({
         type: 'success',
-        message: '✓ Form submitted successfully! Thank you for registering.'
+        message: `✓ Form submitted successfully to ${activeDB.toUpperCase()}! Thank you for registering.`
       });
 
       // Reset form
@@ -124,7 +148,7 @@ const StudentForm = () => {
       console.error('Error submitting form:', error);
       setFeedbackMessage({
         type: 'error',
-        message: 'Failed to submit form. Please try again later.'
+        message: `Failed to submit form to ${activeDB.toUpperCase()}. Please try again later.`
       });
     } finally {
       setLoading(false);
@@ -308,7 +332,6 @@ const StudentForm = () => {
             color: '#ffffff',
             fontFamily: 'monospace'
           }}>
-            Admin? Try Ctrl+Shift+Alt+A
           </div>
         </form>
       </div>

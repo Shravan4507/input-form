@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useDatabase } from '../contexts/DatabaseContext';
+import * as mongoAPI from '../services/mongoAPI';
 import type { StudentFormData } from '../types/student';
 import AnimatedBackground from './AnimatedBackground';
 import * as XLSX from 'xlsx';
@@ -40,6 +42,8 @@ type SortField = 'firstName' | 'surname' | 'email' | 'branch' | 'year' | 'divisi
 type SortOrder = 'asc' | 'desc';
 
 const AdminPanel = ({ onLogout }: AdminPanelProps) => {
+  const { activeDB, switchDatabase } = useDatabase();
+  
   const [students, setStudents] = useState<(StudentFormData & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -75,24 +79,51 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [activeDB]); // Refetch when database changes
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const q = query(collection(db, 'students'), orderBy('submittedAt', 'desc'));
-      const querySnapshot = await getDocs(q);
       
-      const studentsData: (StudentFormData & { id: string })[] = [];
-      querySnapshot.forEach((doc) => {
-        studentsData.push({ id: doc.id, ...doc.data() } as StudentFormData & { id: string });
-      });
+      if (activeDB === 'firestore') {
+        // Fetch from Firestore
+        const q = query(collection(db, 'students'), orderBy('submittedAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const studentsData: (StudentFormData & { id: string })[] = [];
+        querySnapshot.forEach((doc) => {
+          studentsData.push({ id: doc.id, ...doc.data() } as StudentFormData & { id: string });
+        });
 
-      setStudents(studentsData);
-      calculateStats(studentsData);
+        setStudents(studentsData);
+        calculateStats(studentsData);
+      } else {
+        // Fetch from MongoDB
+        const response = await mongoAPI.getAllStudents();
+        if (response.success && response.data) {
+          // Convert MongoDB format to match Firestore format
+          const studentsData = response.data.map(student => ({
+            id: student._id || '',
+            firstName: student.fullName.split(' ')[0] || '',
+            middleName: student.fullName.split(' ')[1] || '',
+            surname: student.fullName.split(' ').slice(2).join(' ') || '',
+            rollNumber: student.rollNo,
+            zprnNumber: student.zprn,
+            branch: student.branch,
+            year: student.year,
+            division: student.division,
+            email: student.email,
+            contactNumber: student.phoneNo,
+            submittedAt: student.createdAt
+          })) as (StudentFormData & { id: string })[];
+          
+          setStudents(studentsData);
+          calculateStats(studentsData);
+        }
+      }
     } catch (error) {
-      console.error('Error fetching students:', error);
-      alert('Failed to fetch student data. Please check your Firebase configuration.');
+      console.error(`Error fetching students from ${activeDB}:`, error);
+      alert(`Failed to fetch student data from ${activeDB.toUpperCase()}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -178,10 +209,14 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
     }
 
     try {
-      await deleteDoc(doc(db, 'students', id));
+      if (activeDB === 'firestore') {
+        await deleteDoc(doc(db, 'students', id));
+      } else {
+        await mongoAPI.deleteStudent(id);
+      }
       await fetchStudents(); // Refresh the list
       setSelectedStudents(new Set()); // Clear selections
-      alert('Student deleted successfully!');
+      alert(`Student deleted successfully from ${activeDB.toUpperCase()}!`);
     } catch (error) {
       console.error('Error deleting student:', error);
       alert('Failed to delete student. Please try again.');
@@ -200,13 +235,20 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
     }
 
     try {
-      const deletePromises = Array.from(selectedStudents).map(id =>
-        deleteDoc(doc(db, 'students', id))
-      );
-      await Promise.all(deletePromises);
+      const idsArray = Array.from(selectedStudents);
+      
+      if (activeDB === 'firestore') {
+        const deletePromises = idsArray.map(id =>
+          deleteDoc(doc(db, 'students', id))
+        );
+        await Promise.all(deletePromises);
+      } else {
+        await mongoAPI.bulkDeleteStudents(idsArray);
+      }
+      
       await fetchStudents();
       setSelectedStudents(new Set());
-      alert(`${deletePromises.length} student(s) deleted successfully!`);
+      alert(`${idsArray.length} student(s) deleted successfully from ${activeDB.toUpperCase()}!`);
     } catch (error) {
       console.error('Error deleting students:', error);
       alert('Failed to delete some students. Please try again.');
@@ -230,12 +272,29 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
     if (!editingId || !editFormData) return;
 
     try {
-      const studentRef = doc(db, 'students', editingId);
-      await updateDoc(studentRef, editFormData as any);
+      if (activeDB === 'firestore') {
+        const studentRef = doc(db, 'students', editingId);
+        await updateDoc(studentRef, editFormData as any);
+      } else {
+        // Convert to MongoDB format
+        const mongoStudent = {
+          fullName: `${editFormData.firstName} ${editFormData.middleName} ${editFormData.surname}`.trim(),
+          rollNo: editFormData.rollNumber,
+          zprn: editFormData.zprnNumber,
+          branch: editFormData.branch,
+          year: editFormData.year,
+          division: editFormData.division,
+          email: editFormData.email,
+          phoneNo: editFormData.contactNumber,
+          address: '' // Can be enhanced later
+        };
+        await mongoAPI.updateStudent(editingId, mongoStudent);
+      }
+      
       await fetchStudents();
       setEditingId(null);
       setEditFormData(null);
-      alert('Student updated successfully!');
+      alert(`Student updated successfully in ${activeDB.toUpperCase()}!`);
     } catch (error) {
       console.error('Error updating student:', error);
       alert('Failed to update student. Please try again.');
@@ -477,7 +536,26 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
       <AnimatedBackground />
       <header className="admin-header">
         <h1>Admin Dashboard</h1>
-        <button onClick={onLogout} className="logout-button">Logout</button>
+        <div className="header-actions">
+          <div className="database-selector">
+            <span className="db-label">Database:</span>
+            <button
+              className={`db-toggle-btn ${activeDB === 'firestore' ? 'active' : ''}`}
+              onClick={() => switchDatabase('firestore')}
+              disabled={activeDB === 'firestore'}
+            >
+              🔥 Firestore
+            </button>
+            <button
+              className={`db-toggle-btn ${activeDB === 'mongodb' ? 'active' : ''}`}
+              onClick={() => switchDatabase('mongodb')}
+              disabled={activeDB === 'mongodb'}
+            >
+              🍃 MongoDB
+            </button>
+          </div>
+          <button onClick={onLogout} className="logout-button">Logout</button>
+        </div>
       </header>
 
       {loading ? (

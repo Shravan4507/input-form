@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend Environment Variables (IMPORTANT - DO NOT COMMIT!)
+backend/.env
+
+# Backend node_modules
+backend/node_modules/

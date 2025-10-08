@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { DatabaseProvider } from './contexts/DatabaseContext';
 import StudentForm from './components/StudentForm';
 import AdminLogin from './components/AdminLogin';
 import AdminPanel from './components/AdminPanel';
@@ -70,24 +71,26 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* Student Form Route */}
-        <Route path="/" element={<StudentForm />} />
-        
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            isAdminLoggedIn ? (
-              <AdminPanel onLogout={handleLogout} />
-            ) : (
-              <AdminLogin onLogin={handleLogin} />
-            )
-          }
-        />
-      </Routes>
-    </Router>
+    <DatabaseProvider>
+      <Router>
+        <Routes>
+          {/* Student Form Route */}
+          <Route path="/" element={<StudentForm />} />
+          
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              isAdminLoggedIn ? (
+                <AdminPanel onLogout={handleLogout} />
+              ) : (
+                <AdminLogin onLogin={handleLogin} />
+              )
+            }
+          />
+        </Routes>
+      </Router>
+    </DatabaseProvider>
   );
 }
 

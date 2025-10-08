@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useDatabase } from '../contexts/DatabaseContext';
+import * as mongoAPI from '../services/mongoAPI';
 import type { AdminCredentials } from '../types/student';
 import AnimatedBackground from './AnimatedBackground';
 import './AdminLogin.css';
@@ -11,6 +13,8 @@ interface AdminLoginProps {
 }
 
 const AdminLogin = ({ onLogin }: AdminLoginProps) => {
+  const { activeDB } = useDatabase();
+  
   const [credentials, setCredentials] = useState<AdminCredentials>({
     username: '',
     password: ''
@@ -32,20 +36,29 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
     setLoading(true);
 
     try {
-      // Query the admin collection to verify credentials
-      const q = query(
-        collection(db, 'admins'),
-        where('username', '==', credentials.username),
-        where('password', '==', credentials.password)
-      );
+      let isValid = false;
+      
+      if (activeDB === 'firestore') {
+        // Query the admin collection to verify credentials
+        const q = query(
+          collection(db, 'admins'),
+          where('username', '==', credentials.username),
+          where('password', '==', credentials.password)
+        );
 
-      const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q);
+        isValid = !querySnapshot.empty;
+      } else {
+        // MongoDB login
+        const response = await mongoAPI.adminLogin(credentials.username, credentials.password);
+        isValid = response.success;
+      }
 
-      if (!querySnapshot.empty) {
+      if (isValid) {
         // Valid credentials
         onLogin();
       } else {
-        setError('Invalid username or password');
+        setError(`Invalid username or password for ${activeDB.toUpperCase()}`);
       }
     } catch (error) {
       console.error('Error logging in:', error);
