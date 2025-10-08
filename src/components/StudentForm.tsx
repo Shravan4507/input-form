@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -25,6 +25,19 @@ const StudentForm = () => {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // Secret keyboard shortcut: Ctrl + Shift + Alt + A to access admin
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.altKey && e.key === 'A') {
+        e.preventDefault();
+        window.location.hash = '/admin';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -286,6 +299,17 @@ const StudentForm = () => {
           <button type="submit" className="submit-button" disabled={loading}>
             {loading ? 'Submitting...' : 'Submit Form'}
           </button>
+
+          <div style={{ 
+            marginTop: '20px', 
+            textAlign: 'center', 
+            fontSize: '10px', 
+            opacity: 0.3,
+            color: '#ffffff',
+            fontFamily: 'monospace'
+          }}>
+            Admin? Try Ctrl+Shift+Alt+A
+          </div>
         </form>
       </div>
     </div>
