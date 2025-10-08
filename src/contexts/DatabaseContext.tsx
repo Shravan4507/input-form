@@ -11,17 +11,59 @@ interface DatabaseContextType {
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
-export const DatabaseProvider = ({ children }: { children: ReactNode }) => {
-  // Load from localStorage or default to firestore
-  const [activeDB, setActiveDBState] = useState<DatabaseType>(() => {
-    const saved = localStorage.getItem('activeDatabase');
-    return (saved as DatabaseType) || 'firestore';
-  });
+// Check if MongoDB backend is available
+const checkMongoDBAvailability = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('http://localhost:5000/api/students', {
+      method: 'GET',
+      signal: AbortSignal.timeout(2000), // 2 second timeout
+    });
+    return response.ok;
+  } catch (error) {
+    console.log('MongoDB backend not available, defaulting to Firestore');
+    return false;
+  }
+};
 
-  // Save to localStorage whenever it changes
+export const DatabaseProvider = ({ children }: { children: ReactNode }) => {
+  // Always default to firestore initially
+  const [activeDB, setActiveDBState] = useState<DatabaseType>('firestore');
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // Check MongoDB availability on mount and restore preference if available
   useEffect(() => {
-    localStorage.setItem('activeDatabase', activeDB);
-  }, [activeDB]);
+    const initializeDatabase = async () => {
+      const savedDB = localStorage.getItem('activeDatabase') as DatabaseType;
+      
+      // If saved preference was MongoDB, check if backend is available
+      if (savedDB === 'mongodb') {
+        const isMongoAvailable = await checkMongoDBAvailability();
+        
+        if (isMongoAvailable) {
+          setActiveDBState('mongodb');
+        } else {
+          // Reset to firestore if MongoDB not available
+          setActiveDBState('firestore');
+          localStorage.setItem('activeDatabase', 'firestore');
+        }
+      } else {
+        // Default to firestore
+        setActiveDBState('firestore');
+        localStorage.setItem('activeDatabase', 'firestore');
+      }
+      
+      setInitialCheckDone(true);
+    };
+
+    initializeDatabase();
+  }, []);
+
+  // Save to localStorage whenever it changes (after initial check)
+  useEffect(() => {
+    if (initialCheckDone) {
+      localStorage.setItem('activeDatabase', activeDB);
+    }
+  }, [activeDB, initialCheckDone]);
 
   const setActiveDB = (db: DatabaseType) => {
     setActiveDBState(db);

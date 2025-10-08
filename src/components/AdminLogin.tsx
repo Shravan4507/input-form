@@ -13,7 +13,7 @@ interface AdminLoginProps {
 }
 
 const AdminLogin = ({ onLogin }: AdminLoginProps) => {
-  const { activeDB } = useDatabase();
+  const { activeDB, setActiveDB } = useDatabase();
   
   const [credentials, setCredentials] = useState<AdminCredentials>({
     username: '',
@@ -37,6 +37,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
 
     try {
       let isValid = false;
+      let attemptedDB = activeDB;
       
       if (activeDB === 'firestore') {
         // Query the admin collection to verify credentials
@@ -49,16 +50,43 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
         const querySnapshot = await getDocs(q);
         isValid = !querySnapshot.empty;
       } else {
-        // MongoDB login
-        const response = await mongoAPI.adminLogin(credentials.username, credentials.password);
-        isValid = response.success;
+        // MongoDB login - try with backend
+        try {
+          const response = await mongoAPI.adminLogin(credentials.username, credentials.password);
+          isValid = response.success;
+        } catch (mongoError) {
+          console.error('MongoDB backend not reachable, falling back to Firestore:', mongoError);
+          
+          // Auto-fallback to Firestore
+          setActiveDB('firestore');
+          attemptedDB = 'firestore';
+          
+          // Try with Firestore
+          const q = query(
+            collection(db, 'admins'),
+            where('username', '==', credentials.username),
+            where('password', '==', credentials.password)
+          );
+
+          const querySnapshot = await getDocs(q);
+          isValid = !querySnapshot.empty;
+          
+          if (isValid) {
+            setError('⚠️ MongoDB backend unavailable. Switched to Firestore automatically.');
+            // Clear error after showing message
+            setTimeout(() => {
+              onLogin();
+            }, 1500);
+            return;
+          }
+        }
       }
 
       if (isValid) {
         // Valid credentials
         onLogin();
       } else {
-        setError(`Invalid username or password for ${activeDB.toUpperCase()}`);
+        setError(`Invalid username or password for ${attemptedDB.toUpperCase()}`);
       }
     } catch (error) {
       console.error('Error logging in:', error);

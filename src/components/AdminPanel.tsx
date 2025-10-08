@@ -98,32 +98,53 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
         setStudents(studentsData);
         calculateStats(studentsData);
       } else {
-        // Fetch from MongoDB
-        const response = await mongoAPI.getAllStudents();
-        if (response.success && response.data) {
-          // Convert MongoDB format to match Firestore format
-          const studentsData = response.data.map(student => ({
-            id: student._id || '',
-            firstName: student.fullName.split(' ')[0] || '',
-            middleName: student.fullName.split(' ')[1] || '',
-            surname: student.fullName.split(' ').slice(2).join(' ') || '',
-            rollNumber: student.rollNo,
-            zprnNumber: student.zprn,
-            branch: student.branch,
-            year: student.year,
-            division: student.division,
-            email: student.email,
-            contactNumber: student.phoneNo,
-            submittedAt: student.createdAt
-          })) as (StudentFormData & { id: string })[];
+        // Fetch from MongoDB with fallback
+        try {
+          const response = await mongoAPI.getAllStudents();
+          if (response.success && response.data) {
+            // Convert MongoDB format to match Firestore format
+            const studentsData = response.data.map(student => ({
+              id: student._id || '',
+              firstName: student.fullName.split(' ')[0] || '',
+              middleName: student.fullName.split(' ')[1] || '',
+              surname: student.fullName.split(' ').slice(2).join(' ') || '',
+              rollNumber: student.rollNo,
+              zprnNumber: student.zprn,
+              branch: student.branch,
+              year: student.year,
+              division: student.division,
+              email: student.email,
+              contactNumber: student.phoneNo,
+              submittedAt: student.createdAt
+            })) as (StudentFormData & { id: string })[];
+            
+            setStudents(studentsData);
+            calculateStats(studentsData);
+          }
+        } catch (mongoError) {
+          console.error('MongoDB backend not reachable, switching to Firestore:', mongoError);
           
+          // Auto-switch to Firestore
+          await switchDatabase('firestore');
+          
+          // Fetch from Firestore instead
+          const q = query(collection(db, 'students'), orderBy('submittedAt', 'desc'));
+          const querySnapshot = await getDocs(q);
+          
+          const studentsData: (StudentFormData & { id: string })[] = [];
+          querySnapshot.forEach((doc) => {
+            studentsData.push({ id: doc.id, ...doc.data() } as StudentFormData & { id: string });
+          });
+
           setStudents(studentsData);
           calculateStats(studentsData);
+          
+          alert('⚠️ MongoDB backend is not available. Switched to Firestore automatically.');
         }
       }
     } catch (error) {
       console.error(`Error fetching students from ${activeDB}:`, error);
-      alert(`Failed to fetch student data from ${activeDB.toUpperCase()}. Please try again.`);
+      alert(`Failed to fetch student data. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -548,7 +569,23 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
             </button>
             <button
               className={`db-toggle-btn ${activeDB === 'mongodb' ? 'active' : ''}`}
-              onClick={() => switchDatabase('mongodb')}
+              onClick={async () => {
+                // Check MongoDB availability before switching
+                try {
+                  const response = await fetch('http://localhost:5000/api/students', {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2000)
+                  });
+                  
+                  if (response.ok) {
+                    await switchDatabase('mongodb');
+                  } else {
+                    alert('⚠️ MongoDB backend is not responding. Please make sure the backend server is running on http://localhost:5000');
+                  }
+                } catch (error) {
+                  alert('❌ Cannot connect to MongoDB backend.\n\nPlease ensure:\n1. Backend server is running (npm run dev in backend folder)\n2. MongoDB is installed and running\n3. Server is accessible at http://localhost:5000\n\n💡 Staying on Firestore.');
+                }
+              }}
               disabled={activeDB === 'mongodb'}
             >
               🍃 MongoDB
