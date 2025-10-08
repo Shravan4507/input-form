@@ -17,7 +17,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <Router basename="/input-form">
       <Routes>
         {/* Student Form Route */}
         <Route path="/" element={<StudentForm />} />
