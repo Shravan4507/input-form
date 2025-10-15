@@ -9,6 +9,12 @@ export interface StudentFormData {
   division: string;
   rollNumber: string;
   zprnNumber: string;
+  // Optional extra fields (non-mandatory)
+  team?: 'Technial' | 'Documentaion' | 'Social Media & Editing' | 'Design & Innovation' | 'Public Relations & Outreach' | 'Management & Operations' | '';
+  position?: 'President' | 'Chairman' | 'Treasurer' | 'Co - Treasurer' | 'Secretary' | 'Member' | '';
+  nameToDisplay?: string;
+  imageDriveLink?: string;
+  socialMedia?: string;
   submittedAt?: Date;
 }
 

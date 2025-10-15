@@ -21,7 +21,13 @@ const StudentForm = () => {
     year: '',
     division: '',
     rollNumber: '',
-    zprnNumber: ''
+    zprnNumber: '',
+    // Optional fields
+    team: '',
+    position: '',
+    nameToDisplay: '',
+    imageDriveLink: '',
+    socialMedia: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -142,7 +148,12 @@ const StudentForm = () => {
         year: '',
         division: '',
         rollNumber: '',
-        zprnNumber: ''
+        zprnNumber: '',
+        team: '',
+        position: '',
+        nameToDisplay: '',
+        imageDriveLink: '',
+        socialMedia: ''
       });
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -182,7 +193,6 @@ const StudentForm = () => {
                 placeholder="Enter first name"
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="middleName">Middle Name</label>
               <input
@@ -316,6 +326,86 @@ const StudentForm = () => {
                 required
                 maxLength={15}
                 placeholder="Enter ZPRN number"
+              />
+            </div>
+          </div>
+
+          {/* Optional fields section - after required fields */}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="team">Team</label>
+              <select
+                id="team"
+                name="team"
+                value={formData.team || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select Team (optional)</option>
+                <option value="Technial">Technial</option>
+                <option value="Documentaion">Documentaion</option>
+                <option value="Social Media & Editing">Social Media & Editing</option>
+                <option value="Design & Innovation">Design & Innovation</option>
+                <option value="Public Relations & Outreach">Public Relations & Outreach</option>
+                <option value="Management & Operations">Management & Operations</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="position">Position</label>
+              <select
+                id="position"
+                name="position"
+                value={formData.position || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select Position (optional)</option>
+                <option value="President">President</option>
+                <option value="Chairman">Chairman</option>
+                <option value="Treasurer">Treasurer</option>
+                <option value="Co - Treasurer">Co - Treasurer</option>
+                <option value="Secretary">Secretary</option>
+                <option value="Member">Member</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="nameToDisplay">Name to display</label>
+              <input
+                type="text"
+                id="nameToDisplay"
+                name="nameToDisplay"
+                value={formData.nameToDisplay || ''}
+                onChange={handleChange}
+                placeholder="Optional display name"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="imageDriveLink">Image Drive Link</label>
+              <input
+                type="url"
+                id="imageDriveLink"
+                name="imageDriveLink"
+                value={formData.imageDriveLink || ''}
+                onChange={handleChange}
+                placeholder="Set General access to 'Anyone with the link' as Viewer"
+                title=""
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="socialMedia">Social Media</label>
+              <input
+                type="url"
+                id="socialMedia"
+                name="socialMedia"
+                value={formData.socialMedia || ''}
+                onChange={handleChange}
+                placeholder="LinkedIn/Instagram profile link (optional - any one)"
               />
             </div>
           </div>
