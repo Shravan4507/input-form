@@ -18,6 +18,7 @@ const StudentForm = () => {
     contactNumber: '',
     email: '',
     branch: '',
+    customBranch: '',
     year: '',
     division: '',
     rollNumber: '',
@@ -72,6 +73,15 @@ const StudentForm = () => {
       }
     }
 
+    // Validate custom branch input when "Other" is selected
+    if (formData.branch === 'Other' && !formData.customBranch?.trim()) {
+      setFeedbackMessage({
+        type: 'error',
+        message: 'Please specify your branch in the "Other" field!'
+      });
+      return false;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
@@ -118,7 +128,7 @@ const StudentForm = () => {
           fullName: `${formData.firstName} ${formData.middleName} ${formData.surname}`.trim(),
           rollNo: formData.rollNumber,
           zprn: formData.zprnNumber,
-          branch: formData.branch,
+          branch: formData.branch === 'Other' ? (formData.customBranch || '') : formData.branch,
           year: formData.year,
           division: formData.division,
           email: formData.email,
@@ -145,6 +155,7 @@ const StudentForm = () => {
         contactNumber: '',
         email: '',
         branch: '',
+        customBranch: '',
         year: '',
         division: '',
         rollNumber: '',
@@ -265,8 +276,28 @@ const StudentForm = () => {
                 <option value="Electrical">Electrical</option>
                 <option value="Electronics">Electronics</option>
                 <option value="Civil">Civil</option>
+                <option value="AI ML">AI ML</option>
+                <option value="AI DS">AI DS</option>
+                <option value="Other">Other</option>
               </select>
             </div>
+
+            {/* Conditional input for "Other" branch */}
+            {formData.branch === 'Other' && (
+              <div className="form-group">
+                <label htmlFor="customBranch">Specify Branch *</label>
+                <input
+                  type="text"
+                  id="customBranch"
+                  name="customBranch"
+                  value={formData.customBranch || ''}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter your branch name"
+                  style={{ marginTop: '0.5rem' }}
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="year">Year *</label>

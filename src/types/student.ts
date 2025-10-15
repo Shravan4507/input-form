@@ -4,7 +4,8 @@ export interface StudentFormData {
   surname: string;
   contactNumber: string;
   email: string;
-  branch: 'Computer' | 'IT' | 'Mechanical' | 'Electrical' | 'Electronics' | 'Civil' | '';
+  branch: 'Computer' | 'IT' | 'Mechanical' | 'Electrical' | 'Electronics' | 'Civil' | 'AI ML' | 'AI DS' | 'Other' | '';
+  customBranch?: string; // For when "Other" is selected
   year: 'FY' | 'SY' | 'TY' | 'Final Year' | '';
   division: string;
   rollNumber: string;
