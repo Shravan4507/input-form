@@ -73,9 +73,28 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('csv');
   const [selectedColumns, setSelectedColumns] = useState<string[]>([
     'firstName', 'middleName', 'surname', 'contactNumber', 'email', 
-    'branch', 'year', 'division', 'rollNumber', 'zprnNumber'
+    'branch', 'year', 'division', 'rollNumber', 'zprnNumber',
+    'team', 'position', 'nameToDisplay', 'imageDriveLink', 'socialMedia'
   ]);
   const [showChartsModal, setShowChartsModal] = useState(false);
+
+  // Options for new optional fields
+  const teamOptions = [
+    'Technial',
+    'Documentaion',
+    'Social Media & Editing',
+    'Design & Innovation',
+    'Public Relations & Outreach',
+    'Management & Operations'
+  ];
+  const positionOptions = [
+    'President',
+    'Chairman',
+    'Treasurer',
+    'Co - Treasurer',
+    'Secretary',
+    'Member'
+  ];
 
   useEffect(() => {
     fetchStudents();
@@ -447,6 +466,11 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
       'Division',
       'Roll Number',
       'ZPRN Number',
+      'Team',
+      'Position',
+      'Name to display',
+      'Image Drive Link',
+      'Social Media',
       'Submitted At'
     ];
 
@@ -463,6 +487,11 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
         student.division,
         student.rollNumber,
         student.zprnNumber,
+        student.team || '',
+        student.position || '',
+        student.nameToDisplay || '',
+        student.imageDriveLink || '',
+        student.socialMedia || '',
         student.submittedAt ? new Date(student.submittedAt as any).toLocaleString() : ''
       ].join(','))
     ].join('\n');
@@ -497,7 +526,12 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
       'year': 'year',
       'division': 'division',
       'rollNumber': 'rollNumber',
-      'zprnNumber': 'zprnNumber'
+      'zprnNumber': 'zprnNumber',
+      'team': 'team',
+      'position': 'position',
+      'nameToDisplay': 'nameToDisplay',
+      'imageDriveLink': 'imageDriveLink',
+      'socialMedia': 'socialMedia'
     };
 
     const worksheetData = [
@@ -513,7 +547,12 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
           year: 'Year',
           division: 'Division',
           rollNumber: 'Roll Number',
-          zprnNumber: 'ZPRN Number'
+          zprnNumber: 'ZPRN Number',
+          team: 'Team',
+          position: 'Position',
+          nameToDisplay: 'Name to display',
+          imageDriveLink: 'Image Drive Link',
+          socialMedia: 'Social Media'
         };
         return labels[col] || col;
       }),
@@ -802,6 +841,11 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
                       Roll No {sortField === 'rollNumber' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </th>
                     <th>ZPRN No</th>
+                    <th>Team</th>
+                    <th>Position</th>
+                    <th>Name to display</th>
+                    <th>Image Drive Link</th>
+                    <th>Social Media</th>
                     <th className="actions-column">Actions</th>
                   </tr>
                 </thead>
@@ -934,6 +978,69 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
                             />
                           ) : student.zprnNumber}
                         </td>
+                        <td onClick={() => setViewingStudent(student)} className="clickable-cell">
+                          {editingId === student.id ? (
+                            <select
+                              value={editFormData?.team || ''}
+                              onChange={(e) => setEditFormData(prev => prev ? {...prev, team: e.target.value as any} : null)}
+                              className="edit-select"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value="">(none)</option>
+                              {teamOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : (student.team || '-')}
+                        </td>
+                        <td onClick={() => setViewingStudent(student)} className="clickable-cell">
+                          {editingId === student.id ? (
+                            <select
+                              value={editFormData?.position || ''}
+                              onChange={(e) => setEditFormData(prev => prev ? {...prev, position: e.target.value as any} : null)}
+                              className="edit-select"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value="">(none)</option>
+                              {positionOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : (student.position || '-')}
+                        </td>
+                        <td onClick={() => setViewingStudent(student)} className="clickable-cell">
+                          {editingId === student.id ? (
+                            <input
+                              type="text"
+                              value={editFormData?.nameToDisplay || ''}
+                              onChange={(e) => setEditFormData(prev => prev ? {...prev, nameToDisplay: e.target.value} : null)}
+                              className="edit-input"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (student.nameToDisplay || '-')}
+                        </td>
+                        <td onClick={() => setViewingStudent(student)} className="clickable-cell">
+                          {editingId === student.id ? (
+                            <input
+                              type="url"
+                              value={editFormData?.imageDriveLink || ''}
+                              onChange={(e) => setEditFormData(prev => prev ? {...prev, imageDriveLink: e.target.value} : null)}
+                              className="edit-input"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (student.imageDriveLink ? <a href={student.imageDriveLink} target="_blank" rel="noreferrer">Link</a> : '-')}
+                        </td>
+                        <td onClick={() => setViewingStudent(student)} className="clickable-cell">
+                          {editingId === student.id ? (
+                            <input
+                              type="url"
+                              value={editFormData?.socialMedia || ''}
+                              onChange={(e) => setEditFormData(prev => prev ? {...prev, socialMedia: e.target.value} : null)}
+                              className="edit-input"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (student.socialMedia ? <a href={student.socialMedia} target="_blank" rel="noreferrer">Profile</a> : '-')}
+                        </td>
                         <td className="actions-column">
                           {editingId === student.id ? (
                             <div className="action-buttons">
@@ -1046,6 +1153,12 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
                 <strong>Full Name:</strong>
                 <span>{viewingStudent.firstName} {viewingStudent.middleName || ''} {viewingStudent.surname}</span>
               </div>
+            {viewingStudent.nameToDisplay && (
+              <div className="detail-row">
+                <strong>Name to display:</strong>
+                <span>{viewingStudent.nameToDisplay}</span>
+              </div>
+            )}
               <div className="detail-row">
                 <strong>Contact Number:</strong>
                 <span className="copyable" onClick={() => navigator.clipboard.writeText(viewingStudent.contactNumber)}>
@@ -1070,6 +1183,12 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
                 <strong>Division:</strong>
                 <span>{viewingStudent.division}</span>
               </div>
+            {(viewingStudent.team || viewingStudent.position) && (
+              <div className="detail-row">
+                <strong>Team/Position:</strong>
+                <span>{[viewingStudent.team, viewingStudent.position].filter(Boolean).join(' — ')}</span>
+              </div>
+            )}
               <div className="detail-row">
                 <strong>Roll Number:</strong>
                 <span>{viewingStudent.rollNumber}</span>
@@ -1078,6 +1197,18 @@ const AdminPanel = ({ onLogout }: AdminPanelProps) => {
                 <strong>ZPRN Number:</strong>
                 <span>{viewingStudent.zprnNumber}</span>
               </div>
+            {viewingStudent.imageDriveLink && (
+              <div className="detail-row">
+                <strong>Image Drive Link:</strong>
+                <span><a href={viewingStudent.imageDriveLink} target="_blank" rel="noreferrer">Open</a></span>
+              </div>
+            )}
+            {viewingStudent.socialMedia && (
+              <div className="detail-row">
+                <strong>Social Media:</strong>
+                <span><a href={viewingStudent.socialMedia} target="_blank" rel="noreferrer">Profile</a></span>
+              </div>
+            )}
               {viewingStudent.submittedAt && (
                 <div className="detail-row">
                   <strong>Submitted At:</strong>
